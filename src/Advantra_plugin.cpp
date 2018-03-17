@@ -1,8 +1,8 @@
 /* Advantra_plugin.cpp
-* Tool for automatic neuron reconstruction from microscopy image stacks.
-* 2015-8-19 : initial version by Miroslav Radojevic
-* 2016-4-4  : new tracker implementation and track merging mechanism by Miroslav Radojevic
-* 2016-5-24 : prefiltering added (frangi based)
+* Automatic neuron reconstruction from microscopy image stacks.
+* 2015-8-19 : initial version
+* 2016-4-4  : improved tracker implementation added trace merging mechanism
+* 2016-5-24 : added frangi based prefiltering
 * 2016-6-16 : added refinement module and export tools
 
 Copyright (C) Erasmus MC. Permission to use this software and corresponding documentation for educational, research, and not-for-profit purposes, without a fee and without a signed licensing agreement, is granted, subject to the following terms and conditions.
@@ -12,7 +12,6 @@ THE COPYRIGHT HOLDER SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT L
 
 example terminal call:
 ~/vaa3d/vaa3d_tools/bin/vaa3d64.app/Contents/MacOS/vaa3d64 -x Advantra -f advantra_func -i $inimg_file -p 2,3 12 10 0.5 3 2 200 20 2 4 1
-
 */
  
 #include "v3d_message.h"

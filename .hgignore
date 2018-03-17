@@ -1,12 +1,11 @@
 # use glob syntax.
 syntax: glob
-
 *.class
 *.iml
 *.DS_Store
 MANIFEST.MF
 *~
-rubbish
+*.vscode
 
 # switch to regexp syntax.
 syntax: regexp
