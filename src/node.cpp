@@ -9,6 +9,7 @@ THE COPYRIGHT HOLDER SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT L
 #include <cfloat>
 #include <iostream>
 #include <iomanip>
+#include <cstdio>
 
 int Node::NOTHING = 0;
 int Node::SOMA = 1;

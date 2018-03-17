@@ -32,6 +32,11 @@ struct offvuw { // offset v,u,w, template offsets
     int v, u, w;
 };
 
+struct Pvuw { // float version of offvuw, used to capture the offsets when sampling the model
+    Pvuw(float _v, float _u, float _w) : v(_v),u(_u),w(_w) {}
+    float v, u, w;
+};
+
 class Tracker
 {
 public:
@@ -61,17 +66,39 @@ public:
 
     vector<float>   sig;
     // v=(vx,vy,vz), u=(ux,uy,uz) and w=(wx,wy,wz) are aligned with vx,vy,vz of the particle orientation
+
+    // auxiliaries for zncc()
     vector< vector<float> >     model_wgt;  // sig.size() array of vectors for the template weights
     vector< vector<float> >     model_img;  // sig.size() array of vectors for image values
     vector<float>               model_avg;  // sig.size() array of vectors for the template averages
     vector< vector<offvuw> >    model_vuw;  // sig.size() array of vectors for unit offsets along orthogonals
+
+    // zncc_v1()
+    vector<offvuw>              pattern_vuw; // offsets (pattern_vuw.size() corresponds to largest sigma)
+    vector<float>               pattern_img; // image values (pattern_img.size() corresponds to largest sigma)
+    vector< vector<float> >     pattern_wgt; // pattern weights (pattern_wgt.size() correponds to largest sigma)
+    vector< vector<int> >       pattern_sid; // sigma indexes per offset
+    vector<float>               pattern_avg; // average values
+    vector<int>                 pattern_cnt; // number of offsets (and image values) per each sig[]
+    vector<float>               pattern_ag;  // average for the image values per each sigma
+    vector<float>               pattern_corra; // partial result used to calculate correlation at sig[]
+    vector<float>               pattern_corrb; //
+    vector<float>               pattern_corrc; //
+
+    // zncc_v2()
+    int model2_N;
+    vector< vector<float> >     model2_wgt;
+    vector< vector<float> >     model2_img;
+    vector<float>               model2_avg;
+    vector< vector<Pvuw> >      model2_vuw;
+
     float       ux, uy, uz; // orthogonal 1
     float       wx, wy, wz; // orhtogonal 2
     float       zDist;
 
     bool verbose;
     float znccth;
-    int nodes_pp;
+    int nodespervol;
     float Kc;
     float neff_ratio;
 
@@ -114,10 +141,7 @@ public:
     float EPSILON2;
     float KRAD;
 
-    Tracker(
-            float   _sigBeg,
-            float   _sigStp,
-            float   _sigEnd,
+    Tracker(vector<float> _sigs,
             int     _step,
             int     _npcles,
             int     _niter,
@@ -127,7 +151,7 @@ public:
             float   _Kc,
             float   _neff_ratio,
             float   _zdist,
-            int    _nodes_pp);
+            int    _nodespervol);
 
     ~Tracker();
 
@@ -144,21 +168,24 @@ public:
 
 //    void trackNew(int _x, int _y, int _z, unsigned char * _img, vector<Node> & _nodelist, int _w, int _h, int _l, int * _nmap, int ovlp_window);
 
-    void trackPos(seed _seed0, unsigned char* _img, vector<Node>& _nodelist, int _w, int _h, int _l, bool* _checked, unsigned char* _trc_den);
+    void trackPos(seed _seed0, unsigned char* _img, vector<Node>& _nodelist, int _w, int _h, int _l, int* smap, unsigned char* _trc_den, int nh, long** ioff, int* nidx_map);
 
-    void trackNeg(seed _seed0, unsigned char* _img, vector<Node>& _nodelist, int _w, int _h, int _l, bool* _checked, unsigned char* _trc_den);
+    void trackNeg(seed _seed0, unsigned char* _img, vector<Node>& _nodelist, int _w, int _h, int _l, int* smap, unsigned char* _trc_den, int nh, long** ioff, int* nidx_map);
 
     // sampling and resampling -- similar technique used in iter0() and iterI() for prediction
     static void sampleN(vector<float> _csw, int _N, vector<int>& _sampled_idx);
 
-    float zncc(float _x,  float _y,   float _z,
-               float _vx, float _vy,  float _vz,
-               bool _return_avg,
-               unsigned char * img, int img_w, int img_h, int img_l, float & _gcsstd_value);
+    float zncc(float _x, float _y, float _z, float _vx, float _vy,  float _vz, bool _return_avg, unsigned char * img, int img_w, int img_h, int img_l, float & _gcsstd_value);
 
-    float zncc1(X _xp, unsigned char * img, int img_w, int img_h, int img_l, float & _gcsstd_value);
+    float znccAAA(float _x, float _y, float _z, float _vx, float _vy, float _vz, unsigned char * img, int img_w, int img_h, int img_l, float & _sig);
 
-    float zncc2(X_est _xp, unsigned char * img, int img_w, int img_h, int img_l, float & _gcsstd_value);
+    float znccBBB(float _x, float _y, float _z, float _vx, float _vy, float _vz, unsigned char * img, int img_w, int img_h, int img_l, float & _sig);
+
+    float zncc1(X _xp, unsigned char * img, int img_w, int img_h, int img_l, float & _sig);
+
+    float zncc2(X_est _xp, unsigned char * img, int img_w, int img_h, int img_l, float & _sig);
+
+//    float zncc3(seed _seed, unsigned char * img, int img_w, int img_h, int img_l, float & _sig);
 
     void extract(int _i);
 
@@ -184,6 +211,7 @@ public:
              float a2x, float a2y, float a2z,
              float a0x, float a0y, float a0z);
 
+    static void sphereXYZ(float _radius, float _zdist, vector<offxyz>& _off3); // set of spherical (xyz) offsets
     void export_off3(string savepath);
     void export_model(string savepath, bool directed=false);
 //    void export_model(float vx, float vy, float vz, string savepath);
@@ -193,7 +221,7 @@ public:
     void fill(X_est _xc, int _tag, int * _nmap, int _w, int _h, int _l);
 
     static void check1x1(float _x, float _y, float _z, bool* _smap, int _w, int _h, int _l);
-    static void add1x1(float _x, float _y, float _z, unsigned char* _trc_den, int _w, int _h, int _l);
+//    static void add1x1(float _x, float _y, float _z, unsigned char* _trc_den, int _w, int _h, int _l);
 
     static void check2x2(float _x, float _y, float _z, bool* _smap, int _w, int _h, int _l);
 

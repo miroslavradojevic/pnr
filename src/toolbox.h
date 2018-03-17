@@ -28,38 +28,14 @@ unsigned char otsu_th(unsigned char * image1, long size);
 
 unsigned char maxentropy_th(unsigned char * image1, long size);
 
-/*
- * sorting and array together with corresponding indexes
- */
-template<typename T>
-void quicksort(T* array, int* idxs, int startIndex, int endIndex) {
-
-    // pivot element - value and index
-    T pivot = array[startIndex];
-    int pivot_idx = idxs[startIndex];
-
-    int splitPoint;
-    if(endIndex > startIndex) {
-
-        splitPoint = quicksort_partition(array, idxs, pivot, startIndex, endIndex);    // returns the pivot position
-
-        array[splitPoint] = pivot;
-        idxs[splitPoint] = pivot_idx;
-
-        quicksort(array, idxs, startIndex, splitPoint-1);                     // Quick sort first half
-        quicksort(array, idxs, splitPoint+1, endIndex);                       // Quick sort second half
-    }
-
-}
-
 template<typename T>
 void swp(T &a, T &b) {T temp; temp = a; a = b; b = temp;}
 
 template<typename T>
-int quicksort_partition(T* array, int* indxs,    T pivot,    int startIndex, int endIndex) {
+long quicksort_partition(T* array, long* indxs,    T pivot,    long startIndex, long endIndex) {
 
-    int lBdry = startIndex;
-    int rBdry = endIndex;
+    long lBdry = startIndex;
+    long rBdry = endIndex;
 
     while(lBdry < rBdry) {
 
@@ -78,6 +54,30 @@ int quicksort_partition(T* array, int* indxs,    T pivot,    int startIndex, int
     return lBdry;
 
 }
+
+// sorting an array together with corresponding indexes
+template<typename T>
+void quicksort(T* array, long* idxs, long startIndex, long endIndex) {
+
+    // pivot element - value and index
+    T pivot = array[startIndex];
+    long pivot_idx = idxs[startIndex];
+
+    long splitPoint;
+    if(endIndex > startIndex) {
+
+        splitPoint = quicksort_partition(array, idxs, pivot, startIndex, endIndex);    // returns the pivot position
+
+        array[splitPoint] = pivot;
+        idxs[splitPoint] = pivot_idx;
+
+        quicksort(array, idxs, startIndex, splitPoint-1);                     // Quick sort first half
+        quicksort(array, idxs, splitPoint+1, endIndex);                       // Quick sort second half
+    }
+
+}
+
+
 
 template<typename T>
 int partition(T* G, int* Gidxs, int first, int last) {
@@ -102,8 +102,6 @@ int partition(T* G, int* Gidxs, int first, int last) {
 
     return first;
 }
-
-
 
 //void quickselect(T* G, int* Gidxs, int first, int last, int k, T &Gout, int &Gidx);
 template<typename T>
@@ -132,8 +130,6 @@ void quickselect(T* G, int* Gidxs, int first, int last, int k, T &Gout, int &Gid
 
 }
 
-
-
 template<typename T>
 void getKhighest(T* G, int* Gidxs, int Glen, int K, T* Kvals, int* Kidxs) { // G, Gidxs will be modified!
 
@@ -156,12 +152,8 @@ void getKhighest(T* G, int* Gidxs, int Glen, int K, T* Kvals, int* Kidxs) { // G
 
 }
 
-
-
-
 //template<typename T>
 //void getKhighest(T* G, int* Gidxs, int Glen, int K, T* Kvals, int* Kidxs);
-
 template<typename T>
 void getKhighestIdxs(T* G, int* Gidxs, int Glen, int K, int* Kidxs) { // G, Gidxs will be modified! Kidxs will stor the indexes
     //cout<<"getKhighest()"<<endl;
@@ -199,10 +191,12 @@ void get1highest(T* G, int Glen, int &Gidx){ // G is not modified
 
 template<typename T>
 void print_array(T* arr, int arr_len) {
-    for (int var = 0; var < arr_len; ++var) {
+    for (long var = 0; var < arr_len; ++var) {
         std::cout << arr[var] << "\t";
     }
     std::cout << std::endl;
 }
+
+
 
 #endif // TOOLBOX_H

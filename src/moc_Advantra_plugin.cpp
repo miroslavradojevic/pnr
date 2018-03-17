@@ -1,7 +1,7 @@
 /****************************************************************************
 ** Meta object code from reading C++ file 'Advantra_plugin.h'
 **
-** Created: Thu Jun 30 19:49:33 2016
+** Created: Wed May 17 00:19:16 2017
 **      by: The Qt Meta Object Compiler version 62 (Qt 4.7.1)
 **
 ** WARNING! All changes made in this file will be lost!

@@ -62,7 +62,6 @@ int     Tracker::NH2x2_ur[4][3] = {{0,0,0},{0,-1,0},{1,0,0},{1,-1,0}};
 int     Tracker::NH2x2_dl[4][3] = {{0,0,0},{0,1,0},{-1,0,0},{-1,1,0}};
 int     Tracker::NH2x2_dr[4][3] = {{0,0,0},{0,1,0},{1,0,0},{1,1,0}};
 
-
 using namespace std;
 
 template<typename T>
@@ -70,22 +69,19 @@ T clamp(T x, T x1, T x2) {T xC = (x<x1)?x1:x; return (xC>x2)?x2:xC;}
 
 float clampf(float x, float x1, float x2) {float xC = (x<x1)?x1:x; return (xC>x2)?x2:xC;}
 
-Tracker::Tracker(
-        float  _sigBeg,
-        float  _sigStp,
-        float  _sigEnd,
-        int    _step,
-        int    _npcles,
-        int    _niter,
-        float  _kappa,
-        bool   _is2d,
-        float  _znccth,
-        float  _Kc,
-        float  _neff_ratio,
-        float  _zdist,
-        int    _nodes_pp) {
+Tracker::Tracker(   vector<float> _sigs,
+                    int    _step,
+                    int    _npcles,
+                    int    _niter,
+                    float  _kappa,
+                    bool   _is2d,
+                    float  _znccth,
+                    float  _Kc,
+                    float  _neff_ratio,
+                    float  _zdist,
+                    int    _nodes_pp) {
 
-    for (float s = _sigBeg; s <= _sigEnd+FLT_MIN; s+=_sigStp) sig.push_back(s);
+    sig = _sigs;
 
     step = _step;
     npcles = _npcles;
@@ -96,24 +92,18 @@ Tracker::Tracker(
     zDist = _zdist;
 
     znccth = _znccth;
-    nodes_pp = _nodes_pp;
+    nodespervol = _nodes_pp;
     Kc = _Kc;
     neff_ratio = _neff_ratio;
 
     verbose = false;
 
-    // calculate the templates
-    // clear vector<vector<>> structures used
+    // -----------------------------
+    // clear model_* structures used
     model_avg.clear();
-
-    for (int i = 0; i < model_wgt.size(); ++i) model_wgt[i].clear();
-    model_wgt.clear();
-
-    for (int i = 0; i < model_img.size(); ++i) model_img[i].clear();
-    model_img.clear();
-
-    for (int i = 0; i < model_vuw.size(); ++i) model_vuw[i].clear();
-    model_vuw.clear();
+    for (int i = 0; i < model_wgt.size(); ++i) model_wgt[i].clear(); model_wgt.clear();
+    for (int i = 0; i < model_img.size(); ++i) model_img[i].clear(); model_img.clear();
+    for (int i = 0; i < model_vuw.size(); ++i) model_vuw[i].clear(); model_vuw.clear();
 
     for (int i = 0; i < sig.size(); ++i) {
 
@@ -128,8 +118,8 @@ Tracker::Tracker(
         // indexing differs in 2d and 3d
         if (is2d) {
 
-            int V2 = ceil(1*sig[i]); // steps in the direciton aligned with vx,vy,vz
-            int U2 = ceil(3*sig[i]); // orthogonal
+            int V2 = round(1*sig[i]); // steps in the direciton aligned with vx,vy,vz
+            int U2 = round(3*sig[i]); // orthogonal
 
             for (int vv = -V2; vv <= V2; ++vv) {
                 for (int uu = -U2; uu <= U2; ++uu) {
@@ -144,9 +134,9 @@ Tracker::Tracker(
         }
         else {
 
-            int V2 = ceil(1*sig[i]);
-            int U2 = ceil(3*sig[i]);
-            int W2 = ceil(3*sig[i]);
+            int V2 = round(1*sig[i]);
+            int U2 = round(3*sig[i]);
+            int W2 = round(3*sig[i]);
 
             for (int vv = -V2; vv <= V2; ++vv) {
                 for (int uu = -U2; uu <= U2; ++uu) {
@@ -162,9 +152,193 @@ Tracker::Tracker(
             }
         }
 
-        model_avg[i] /= model_wgt[i].size();
+        model_avg[i] /= model_wgt[i].size(); // for each sigma
 
     }
+
+//    vector< vector<float> >     model2_wgt;
+//    vector< vector<float> >     model2_img;
+//    vector<float>               model2_avg;
+//    vector< vector<Pvuw> >      model2_vuw;
+
+    // -----------------------------
+    // clear model2_*
+    model2_avg.clear();
+    for (int i = 0; i < model2_wgt.size(); ++i) model2_wgt[i].clear(); model2_wgt.clear();
+    for (int i = 0; i < model2_img.size(); ++i) model2_img[i].clear(); model2_img.clear();
+    for (int i = 0; i < model2_vuw.size(); ++i) model2_vuw[i].clear(); model2_vuw.clear();
+
+    model2_N = 12; // hardcoded, # samples per 3*sigma
+
+    for (int i = 0; i < sig.size(); ++i) {
+
+        model2_avg.push_back(0.0);
+        vector<float> wgt;
+        model2_wgt.push_back(wgt);
+        vector<float> img;
+        model2_img.push_back(img);
+        vector<Pvuw> vuw;
+        model2_vuw.push_back(vuw);
+
+        // indexing differs in 2d and 3d
+        if (is2d) {
+            int V2 = round(1*sig[i]); // steps in the direciton aligned with vx,vy,vz
+            int U2 = round(3*sig[i]); // orthogonal
+            float Vs = (3.0*sig[i])/model2_N;
+            Vs = (Vs<1.0)? 1.0 : Vs ;
+
+            for (float vv = -V2; vv <= V2+FLT_MIN; vv+=Vs) {
+                for (float uu = -U2; uu <= U2+FLT_MIN; uu+=Vs) {
+                    float value = exp(-(uu*uu)/(2*pow(sig[i],2)));
+                    model2_wgt[i].push_back(value);
+                    model2_img[i].push_back(0.0); // just allocate storage for the image values
+                    Pvuw t(vv, uu, 0);
+                    model2_vuw[i].push_back(t);
+                    model2_avg[i] += value;
+                }
+            }
+
+        }
+        else {
+            int V2 = round(1*sig[i]);
+            int U2 = round(3*sig[i]);
+            int W2 = round(3*sig[i]);
+            float Vs = (3.0*sig[i])/model2_N;
+            Vs = (Vs<1.0)? 1.0 : Vs ;
+
+            for (float vv = -V2; vv <= V2+FLT_MIN; vv+=Vs) {
+                for (float uu = -U2; uu <= U2+FLT_MIN; uu+=Vs) {
+                    for (float ww = -W2; ww <= W2+FLT_MIN; ww+=Vs) {
+                        float value = exp(-((uu*uu)+(ww*ww))/(2*pow(sig[i],2)));
+                        model2_wgt[i].push_back(value);
+                        model2_img[i].push_back(0.0); // just allocate
+                        Pvuw t(vv, uu, ww);
+                        model2_vuw[i].push_back(t);
+                        model2_avg[i] += value;
+                    }
+                }
+            }
+
+        }
+
+        model2_avg[i] /= model2_wgt[i].size(); // for each sigma
+    }
+
+//    for (int i = 0; i < sig.size(); ++i) {
+//        cout << "sig[" << i << "] = " << sig[i] << " | " << model2_vuw[i].size() << " offsets  |  " << model2_img[i].size() << endl;
+//    }
+
+//    vector<offvuw>              pattern_vuw; // offsets (pattern_vuw.size() corresponds to largest sigma)
+//    vector<float>               pattern_img; // image values (pattern_img.size() corresponds to largest sigma)
+//    vector< vector<float> >     pattern_wgt; // pattern weights (pattern_wgt.size() correponds to largest sigma)
+//    vector< vector<int> >       pattern_sid; // sigma indexes per offset
+//    vector<float>               pattern_avg; // average values (MODEL WEIGHTS)
+//    vector<int>                 pattern_cnt; // number of offsets (image values) per each sig[]
+//    vector<float>               pattern_ag;  // average for the IMAGE VALS per each sigma
+//    vector<float>               pattern_corra; // partial result used to calculate correlation at sig[]
+//    vector<float>               pattern_corrb; //
+//    vector<float>               pattern_corrc; //
+
+    pattern_avg.clear();
+    pattern_cnt.clear();
+    pattern_ag.clear();
+    pattern_corra.clear();
+    pattern_corrb.clear();
+    pattern_corrc.clear();
+
+    for (int i = 0; i < sig.size(); ++i) {
+        pattern_ag.push_back(0.0);      // image values average per each sigma
+
+        pattern_cnt.push_back(0);       // count number of offsets used per sigma
+        pattern_avg.push_back(0.0);     // model values average per sigma
+        pattern_corra.push_back(0.0);   // correlation auxiliaries
+        pattern_corrb.push_back(0.0);   //
+        pattern_corrc.push_back(0.0);   //
+    }
+
+    pattern_vuw.clear();
+    pattern_img.clear();
+    for (int i = 0; i < pattern_wgt.size(); ++i) pattern_wgt[i].clear(); pattern_wgt.clear();
+    for (int i = 0; i < pattern_sid.size(); ++i) pattern_sid[i].clear(); pattern_sid.clear();
+
+    if (is2d) {
+
+        int V2 = round(1*sig.back()); // sig[] is sorted so V2, U2 define outer offset boundary
+        int U2 = round(3*sig.back()); //
+
+        for (int vv = -V2; vv <= V2; ++vv) {
+            for (int uu = -U2; uu <= U2; ++uu) {
+
+                offvuw vuw(vv, uu, 0);
+                pattern_vuw.push_back(vuw);
+
+                pattern_img.push_back(0.0); // allocate
+
+                vector<float> wgt;
+                vector<int> sid;
+                for (int sig_idx = 0; sig_idx < sig.size(); ++sig_idx) {
+                    if ( abs(vv)<=round(1*sig[sig_idx]) && abs(uu)<=round(3*sig[sig_idx]) ) {
+                        sid.push_back(sig_idx);
+                        float weight = exp(-(uu*uu)/(2*pow(sig[sig_idx],2)));
+                        wgt.push_back(weight);
+                        pattern_cnt[sig_idx] += 1;
+                        pattern_avg[sig_idx] += weight;
+                    }
+                }
+                pattern_wgt.push_back(wgt);
+                pattern_sid.push_back(sid);
+            }
+        }
+
+    }
+    else { // 3d
+        int V2 = round(1*sig.back());
+        int U2 = round(3*sig.back());
+        int W2 = round(3*sig.back());
+
+        for (int vv = -V2; vv <= V2; ++vv) {
+            for (int uu = -U2; uu <= U2; ++uu) {
+                for (int ww = -W2; ww <= W2; ++ww) {
+
+                    offvuw vuw(vv, uu, ww);
+                    pattern_vuw.push_back(vuw);
+
+                    pattern_img.push_back(0.0); // allocate
+
+                    vector<float> wgt;
+                    vector<int> sid;
+                    for (int sig_idx = 0; sig_idx < sig.size(); ++sig_idx) {
+                        if ( abs(vv)<=round(1*sig[sig_idx]) && abs(uu)<=round(3*sig[sig_idx]) && abs(ww)<=round(3*sig[sig_idx]) ) {
+                            sid.push_back(sig_idx);
+                            float weight = exp(-((uu*uu)+(ww*ww))/(2*pow(sig[sig_idx],2)));
+                            wgt.push_back(weight);
+                            pattern_cnt[sig_idx] += 1;
+                            pattern_avg[sig_idx] += weight;
+                        }
+                    }
+                    pattern_wgt.push_back(wgt);
+                    pattern_sid.push_back(sid);
+                }
+            }
+        }
+    }
+
+    for (int k = 0; k < pattern_cnt.size(); ++k) {
+        pattern_avg[k] /= pattern_cnt[k];
+//        cout << "pattern_cnt[" << k << "] = " << pattern_cnt[k] << endl;
+//        cout << "pattern_avg[" << k << "] = " << pattern_avg[k] << endl;
+    }
+
+//    cout << "pattern_vuw.size()=" << pattern_vuw.size() << endl;
+//    for (int k = 0; k < pattern_vuw.size(); ++k) {
+//        cout << "[" << pattern_vuw[k].v << "," << pattern_vuw[k].u << "," << pattern_vuw[k].w << "] " << flush;
+//        cout << "[" << flush;
+//        for (int k1 = 0; k1 < pattern_sid[k].size(); ++k1) cout << pattern_sid[k][k1] << "(" << sig[pattern_sid[k][k1]] << ")  " << flush;
+//        cout << "] " << flush;
+//        cout << "{" << flush;
+//        for (int k1 = 0; k1 < pattern_wgt[k].size(); ++k1) cout << pattern_wgt[k][k1] << "   " << flush;
+//        cout << "}"<< endl;
+//    }
 
     // ---- x filtered initialization ----
     xfilt = new X*[niter];
@@ -192,7 +366,6 @@ Tracker::Tracker(
 //    ovlp = new int[niter];
     neff = new float[niter];
 
-
     // prediction matrices
     vector<int> px, py, pz;
 
@@ -217,12 +390,12 @@ Tracker::Tracker(
 
     sz = px.size();
 
-    p = new float*[sz];           // predicted locations
+    p = new float*[sz];         // predicted locations
     d   = new float[sz];        // norm
     d0  = new float[sz];        //
     u = new float*[sz];         // unit vector for each
-    cws = new float[sz];        //
-    w0  = new float[sz];
+    cws = new float[sz];        // cummulative weight sum
+    w0  = new float[sz];        //
     w0_cws = new float[sz];
 
     float w0sum = 0;
@@ -301,7 +474,8 @@ Tracker::Tracker(
     for (int i = 0; i < off3.size(); ++i) off3[i].clear();
     off3.clear();
 
-    for (int i = 0; i <= ceil(4 * _sigEnd); ++i) { // 4*sig would be a very large radius, to cover all possible radiuses
+
+    for (int i = 0; i <= ceil(4 * sig.back()); ++i) { // 4*sig would be a very large radius, to cover all possible radiuses, sig should be sorted so sig.back() is largest
 
         vector<offxyz> t;     // empty vector
         off3.push_back(t);    // now off3[i] can be appended and accessed
@@ -343,12 +517,11 @@ Tracker::Tracker(
     MAXITER     = INT_MAX;
     EPSILON2    = 0.000000001;
     KRAD        = 3; // could be dependent on diam too
-
 }
 
 Tracker::~Tracker(){
 
-    cout << "~Tracker()" << endl;
+//    cout << "~Tracker()" << endl;
 
     for (int i = 0; i < sz; ++i) delete [] p[i];
     delete [] p; p = 0;
@@ -395,6 +568,48 @@ Tracker::~Tracker(){
     delete [] labels; labels = 0;
     delete [] checked; checked = 0;
     delete [] nbridxs; nbridxs = 0;
+
+}
+
+void Tracker::sphereXYZ(float _radius, float _zdist, vector<offxyz>& _offxyz) {
+    // export set of offsets for particular radius, and z axis shrink as in off3
+    // neighbourhood offsets x,y,z
+    _offxyz.clear();
+
+//    for (int i = 0; i <= ceil(4 * _sigEnd); ++i) { // 4*sig would be a very large radius, to cover all possible radiuses
+//        vector<offxyz> t;     // empty vector
+//        off3.push_back(t);    // now off3[i] can be appended and accessed
+
+        _radius = (_radius<0)?0:_radius;
+        int rxy = round(_radius);
+        int rz  = round(_radius/_zdist); // scale the layer range when establishing fill-up offsets
+
+//        cout << "rxy=" << rxy <<" rz=" << rz << endl;
+
+//        if (i==0) {
+//            offxyz curroff(0, 0, 0);
+//            off3[i].push_back(curroff);
+//        }
+//        else {
+
+        for (int dx = -rxy; dx <= rxy; ++dx) {
+
+            for (int dy = -rxy; dy <= rxy; ++dy) {
+
+                for (int dz = -rz; dz <= rz; ++dz) {
+
+//                    double ins= ((dx*dx)/(double)(rxy*rxy))+((dy*dy)/(double)(rxy*rxy))+((rz==0)?0:(dz*dz)/(double)(rz*rz));
+                    if (((dx*dx)/(double)(rxy*rxy))+((dy*dy)/(double)(rxy*rxy))+((rz==0)?0:(dz*dz)/(double)(rz*rz))<=1.0) {
+                        offxyz o(dx, dy, dz);
+                        _offxyz.push_back(o);
+                    }
+
+                }
+            }
+        }
+
+//        }
+//    }
 
 }
 
@@ -594,12 +809,14 @@ void Tracker::sampleN(vector<float> _csw, int _N, vector<int>& _sampled_idx){
     }
 }
 
-void Tracker::trackNeg(seed _seed0, unsigned char* _img, vector<Node>& _nodelist, int _w, int _h, int _l, bool* _checked, unsigned char* _trc_den) {
-    seed seedNeg(_seed0.x, _seed0.y, _seed0.z, -_seed0.vx, -_seed0.vy, -_seed0.vz, _seed0.score);
-    trackPos(seedNeg, _img, _nodelist, _w, _h, _l, NULL, _trc_den);
+void Tracker::trackNeg(seed _seed0, unsigned char* _img, vector<Node>& _nodelist, int _w, int _h, int _l, int* smap, unsigned char* _trc_den,
+                       int vol, long** ioff, int* nidx_map) {
+    seed seedNeg(_seed0.x, _seed0.y, _seed0.z, -_seed0.vx, -_seed0.vy, -_seed0.vz, _seed0.score, _seed0.corr);
+    trackPos(seedNeg, _img, _nodelist, _w, _h, _l, smap, _trc_den, vol, ioff, nidx_map);
 }
 
-void Tracker::trackPos(seed _seed0, unsigned char* _img, vector<Node>& _nodelist, int _w, int _h, int _l, bool* _checked, unsigned char* _trc_den) {
+void Tracker::trackPos(seed _seed0, unsigned char* _img, vector<Node>& _nodelist, int _w, int _h, int _l, int* smap, unsigned char* _trc_den,
+                       int vol, long** ioff, int* nidx_map) {
 
     x0.x  = _seed0.x;
     x0.y  = _seed0.y;
@@ -611,6 +828,7 @@ void Tracker::trackPos(seed _seed0, unsigned char* _img, vector<Node>& _nodelist
 
     bool success;
     bool density_limit_reached;
+    bool soma_reached;
     ti_limit = niter;
 
     if (verbose) printf("\n\t [%.2f, %.2f, %.2f] >> ", x0.vx, x0.vy, x0.vz);
@@ -620,63 +838,85 @@ void Tracker::trackPos(seed _seed0, unsigned char* _img, vector<Node>& _nodelist
         if (i==0)   success = iter0New(   _img, _w, _h, _l);
             else    success = iterINew(i, _img, _w, _h, _l);
 
-        if (success) { // success means round(xc[i].x,xc[i].y,xc[i].z) is within the dimensions
+        if (success) { // success means round(xc[i].x,xc[i].y,xc[i].z) is within the image dimensions
 
-            long crd = (int)round(xc[i].z)*_w*_h+(int)round(xc[i].y)*_w+(int)round(xc[i].x);
-            density_limit_reached = (int)_trc_den[crd] >= nodes_pp;
-            if (!density_limit_reached) {
+            long crd = (int)round(xc[i].z)*_w*_h+(int)round(xc[i].y)*_w+(int)round(xc[i].x); // get traces current voxel index
 
+            // check if the soma was reached, if smap[crd]>0, if so, stop the trace and the node and link with the corresponding soma node
+            soma_reached = smap[crd]>0;
+            // check if voxel density is reched in current vox
+            density_limit_reached = (int)_trc_den[crd] >= nodespervol; // nidx_map[] is filled together with _trc_den[]
+
+            if (soma_reached) {
+
+                if (i>0) { // linking with corresponding reached soma node
+                    _nodelist[smap[crd]         ].nbr.push_back(_nodelist.size()-1);
+                    _nodelist[_nodelist.size()-1].nbr.push_back(smap[crd]);
+                }
+
+                ti_limit = i; // current one is the limit
+
+                printf("\n--%d[%d], SOMA, idx=%d", ti_limit, niter, smap[crd]);
+                fflush(stdout);
+                break; // stop further trace
+            }
+            else if (density_limit_reached) {
+
+                if (i>0) { // linking with corresponding reached node
+                    _nodelist[nidx_map[crd]     ].nbr.push_back(_nodelist.size()-1);
+                    _nodelist[_nodelist.size()-1].nbr.push_back(nidx_map[crd]);
+                }
+
+                ti_limit = i;
+
+                printf("\n--%d[%d], DENSITY, nodespervol=%d", ti_limit, niter, nodespervol);
+                fflush(stdout);
+                break; // stop further trace
+            }
+            else {
                 Node nd(xc[i].x, xc[i].y, xc[i].z, xc[i].vx, xc[i].vy, xc[i].vz, xc[i].corr, xc[i].sig, ((i==0)? Node::UNDEFINED : Node::AXON));
                 _nodelist.push_back(nd);
 
-                            // add to _trc_den
-                            if (NH==1 || NH>1)      add1x1(xc[i].x, xc[i].y, xc[i].z, _trc_den, _w, _h, _l); // increment _trc_den at the location
+                // mark the trace node density of the neighbourhood down
+                _trc_den[crd] = (unsigned char)((int)_trc_den[crd] + 1); // update node density map
+                nidx_map[crd] = _nodelist.size()-1;
 
-//                            if (_checked!=NULL) { // if seed suppression is active
-//                                if (NH==1)          check1x1(xc[i].x, xc[i].y, xc[i].z, _checked, _w, _h, _l);
-//                                else if (NH==2)     check2x2(xc[i].x, xc[i].y, xc[i].z, _checked, _w, _h, _l);
-//                                else if (NH==3)     check3x3(xc[i].x, xc[i].y, xc[i].z, _checked, _w, _h, _l);
-//                                else if (NH==4)     check4x4(xc[i].x, xc[i].y, xc[i].z, _checked, _w, _h, _l);
-//                                else if (NH==5)     check5x5(xc[i].x, xc[i].y, xc[i].z, _checked, _w, _h, _l);
-//                                else                check3x3(xc[i].x, xc[i].y, xc[i].z, _checked, _w, _h, _l);
-//                            }
+                if (vol>1) { // there are vol-1 neighbours to add to _trc_den[]
+                    for (int j = 0; j < vol-1; ++j) {
+                        _trc_den[ioff[crd][j]] = (unsigned char)((int)_trc_den[ioff[crd][j]] + 1); // update node density map
+                        nidx_map[ioff[crd][j]] = _nodelist.size()-1; // update node index map
+                    }
+                }
 
-                            // linking
-                            if (i>0) {
-                                _nodelist[_nodelist.size()-1].nbr.push_back(_nodelist.size()-2);
-                                _nodelist[_nodelist.size()-2].nbr.push_back(_nodelist.size()-1);
-                            }
+                if (i>0) { // linking
+                    _nodelist[_nodelist.size()-1].nbr.push_back(_nodelist.size()-2);
+                    _nodelist[_nodelist.size()-2].nbr.push_back(_nodelist.size()-1);
+                }
 
-                            if (verbose)
-                                printf("\n\t\ti=%d\t x=[%4.1f, %4.1f, %4.1f]\t r=[%4.2f]\t zncc=%1.2f\t Neff=%1.2f[%d]", i,
-                                       xc[i].x, xc[i].y, xc[i].z, xc[i].sig, xc[i].corr, (neff[i]/npcles), (neff[i]/npcles<neff_ratio));
-            }
-            else { // breaks the trace, spatial node density reached
-                ti_limit = i;
-                break;
+                if (verbose)
+                    printf("\n\t\ti=%d\t x=[%4.1f, %4.1f, %4.1f]\t r=[%4.2f]\t zncc=%1.2f\t Neff=%1.2f[%d]", i,
+                           xc[i].x, xc[i].y, xc[i].z, xc[i].sig, xc[i].corr, (neff[i]/npcles), (neff[i]/npcles<neff_ratio));
+
+                if (i==niter-1) {// last iteration
+                    printf("\n--%d[%d], TRACK LIMIT, niter=%d", ti_limit, niter, xc[ti_limit].corr, niter);
+                    fflush(stdout);
+                }
             }
 
         }
         else { // breaks the trace, trace out of dimensions or correlation below limit
             ti_limit = i;
+            printf("\n--%d[%d], success=0, corr=%1.2f", ti_limit, niter, xc[ti_limit].corr);
+            fflush(stdout);
             break;
         }
 
     }
 
-    if (true || verbose) {
-        printf("\t%d[%d] ", ti_limit, niter);
-        if (!success)
-            printf("corr=%1.2f", xc[ti_limit].corr);
-        if (density_limit_reached)
-            printf("density=%5d", nodes_pp);
-    }
-
     /* this was initially added but later on made no sense to constrain as later processing stages will take care of prunning
     if (ti_limit==1) { // there was 1 node in the trace
-        for (int j = ti_limit-1; j >= 0; --j) { // expell
+        for (int j = ti_limit-1; j >= 0; --j)
             _nodelist.pop_back();
-        }
     }
     */
 
@@ -1631,60 +1871,19 @@ float Tracker::d2(
 //    return wxyz/wsum;
 //}
 
-float Tracker::zncc1(X _xp,
-                    unsigned char * img,
-                    int img_w, int img_h, int img_l,
-                    float & _sig)
-{
-    return zncc(
-                _xp.x,
-                _xp.y,
-                _xp.z,
-                _xp.vx,
-                _xp.vy,
-                _xp.vz,
-                0,     // use max 0, maybe use average 1
-                img,
-                img_w,
-                img_h,
-                img_l,
-                _sig
-                );
+float Tracker::zncc1(X _xp, unsigned char * img, int img_w, int img_h, int img_l, float & _sig) {
+//    return zncc(_xp.x, _xp.y, _xp.z, _xp.vx, _xp.vy, _xp.vz, 0, img, img_w, img_h, img_l, _sig);// 0: use max 0, 1: use average
+    return znccBBB(_xp.x, _xp.y, _xp.z, _xp.vx, _xp.vy, _xp.vz, img, img_w, img_h, img_l, _sig);
 }
 
-float Tracker::zncc2(X_est _xp,
-                    unsigned char * img,
-                    int img_w, int img_h, int img_l,
-                    float & _sig)
-{
-
-    return zncc(
-                _xp.x, // (int)round(),
-                _xp.y, // (int)round(),
-                _xp.z, // (int)round(),
-                _xp.vx,
-                _xp.vy,
-                _xp.vz,
-                0, // use average 1
-                img,
-                img_w,
-                img_h,
-                img_l,
-                _sig
-                );
+float Tracker::zncc2(X_est _xp, unsigned char * img, int img_w, int img_h, int img_l, float & _sig) {
+//    return zncc(_xp.x, _xp.y, _xp.z, _xp.vx, _xp.vy, _xp.vz, 0, img, img_w, img_h, img_l, _sig); // 0: use max, 1: use average
+    return znccBBB(_xp.x, _xp.y, _xp.z, _xp.vx, _xp.vy, _xp.vz, img, img_w, img_h, img_l, _sig);
 }
 
-
-
-float Tracker::zncc( float _x,      float _y,       float _z,
-                     float _vx,     float _vy,      float _vz,
-                     bool _return_avg,
-                     unsigned char * img,
-                     int img_w,     int img_h,      int img_l,
-                     float & _sig) {
-
+float Tracker::znccBBB(float _x, float _y, float _z, float _vx, float _vy, float _vz, unsigned char * img, int img_w, int img_h, int img_l, float & _sig) {
     //  ux, uy, uz
-    float nrm = sqrt(pow(_vx,2)+pow(_vy,2)); // projection onto xy plane, if it is small then the vector has z component only
+    float nrm = sqrt(pow(_vx,2)+pow(_vy,2)); // if the xy projection is close to zero, there is z component only
     if (nrm>0.0001) {
         // (ux, uy, uz) denotes the unit direction of the orthogonal positioned in xy plane
         int sg = (_vy<0)? -1 : 1;
@@ -1710,18 +1909,176 @@ float Tracker::zncc( float _x,      float _y,       float _z,
         wz =   ux*_vy - uy*_vx;
     }
 
-//    int x1, x2, y1, y2, z1, z2;
+    float x,y,z,corra, corrb, corrc, corr_val, ag;
+    float out_corr = -FLT_MAX; // ensure that at least one sigma will score max
+//    float out_sig = 1; // gaussian cross section sigma of the optimal solution
+//    float out_corr_avg = 0; // average (test how it works), if the flag says to output it
+
+    for (int sig_idx = 0; sig_idx < model2_vuw.size(); ++sig_idx) { // loop sigs
+
+        ag = 0;
+
+        // calcualte average of sampled image values
+        for (int offset_idx = 0; offset_idx < model2_vuw[sig_idx].size(); ++offset_idx) {
+
+            x = _x + model2_vuw[sig_idx][offset_idx].v * (-_vx) + model2_vuw[sig_idx][offset_idx].u * ux + model2_vuw[sig_idx][offset_idx].w * wx;
+            y = _y + model2_vuw[sig_idx][offset_idx].v * (-_vy) + model2_vuw[sig_idx][offset_idx].u * uy + model2_vuw[sig_idx][offset_idx].w * wy;
+            z = _z + model2_vuw[sig_idx][offset_idx].v * (-_vz) + model2_vuw[sig_idx][offset_idx].u * uz + model2_vuw[sig_idx][offset_idx].w * wz;
+
+            model2_img[sig_idx][offset_idx] = interp(x,y,z, img, img_w, img_h, img_l);
+            ag += model2_img[sig_idx][offset_idx];
+
+        }
+
+        ag /= model2_vuw[sig_idx].size();
+
+        corra = 0;
+        corrb = 0;
+        corrc = 0;
+
+        // calculate correlation using obtained average
+        for (int offset_idx = 0; offset_idx < model2_vuw[sig_idx].size(); ++offset_idx) {
+
+            corra += (model2_img[sig_idx][offset_idx]-ag) * (model2_wgt[sig_idx][offset_idx]-model2_avg[sig_idx]);
+            corrb += pow(model2_img[sig_idx][offset_idx]-ag, 2);
+            corrc += pow(model2_wgt[sig_idx][offset_idx]-model2_avg[sig_idx], 2);
+
+        }
+
+        corr_val = (corrb*corrc>FLT_MIN)? corra/sqrt(corrb*corrc) : 0;
+
+        if (corr_val>out_corr) {
+            out_corr = corr_val;
+            _sig = sig[sig_idx];
+        }
+    }
+
+    return out_corr;
+}
+
+float Tracker::znccAAA(float _x, float _y, float _z, float _vx, float _vy, float _vz, unsigned char * img, int img_w, int img_h, int img_l, float & _sig) {
+    // ux, uy, uz
+    float nrm = sqrt(pow(_vx,2)+pow(_vy,2)); // if the xy projection is close to zero, there is z component only
+    if (nrm>0.0001) {
+        // (ux, uy, uz) denotes the unit direction of the orthogonal positioned in xy plane
+        int sg = (_vy<0)? -1 : 1;
+        ux =  sg * (_vy/nrm);
+        uy = -sg * (_vx/nrm);
+        uz =  0;
+    }
+    else {
+        ux = 1;
+        uy = 0;
+        uz = 0;
+    }
+
+    // wx, wy, wz
+    if (is2d) {
+        wx = 0;
+        wy = 0;
+        wz = 0;
+    }
+    else {
+        wx =   uy*_vz - uz*_vy;
+        wy = - ux*_vz + uz*_vx;
+        wz =   ux*_vy - uy*_vx;
+    }
+
     float x,y,z;
-    float corra, corrb, corrc, corr_val, ag;
 
-    // offsets have been defined taking into accound dimensionality and scales (not optimal as it will repeat sampling the same values, beneficial to implement some incremental calcualtion that starts with the smallest sqare and infers the image values and average using the smaller ones)
+    for (int k = 0; k < sig.size(); ++k) {
+        pattern_ag[k] = pattern_corra[k] = pattern_corrb[k] = pattern_corrc[k] = 0;
+    }
 
+    std::fill(pattern_ag.begin(), pattern_ag.end(), 0);
+
+    for (int offset_idx = 0; offset_idx < pattern_vuw.size(); ++offset_idx) {
+
+        x = _x + pattern_vuw[offset_idx].v * (-_vx) + pattern_vuw[offset_idx].u * ux + pattern_vuw[offset_idx].w * wx;
+        y = _y + pattern_vuw[offset_idx].v * (-_vy) + pattern_vuw[offset_idx].u * uy + pattern_vuw[offset_idx].w * wy;
+        z = _z + pattern_vuw[offset_idx].v * (-_vz) + pattern_vuw[offset_idx].u * uz + pattern_vuw[offset_idx].w * wz;
+
+        pattern_img[offset_idx] = interp(x,y,z, img, img_w, img_h, img_l);
+
+        for (int k = 0; k < pattern_sid[offset_idx].size(); ++k) {
+            pattern_ag[ pattern_sid[offset_idx][k] ] += pattern_img[offset_idx];
+        }
+    }
+
+    for (int k = 0; k < sig.size(); ++k) {
+        pattern_ag[k] /= pattern_cnt[k];
+    }
+
+    // calculate correlation using obtained average
+    for (int offset_idx = 0; offset_idx < pattern_vuw.size(); ++offset_idx) {
+
+        for (int k = 0; k < pattern_sid[offset_idx].size(); ++k) {
+            pattern_corra[ pattern_sid[offset_idx][k] ] +=
+                    (   pattern_img[offset_idx]     - pattern_ag[ pattern_sid[offset_idx][k] ]) *
+                    (   pattern_wgt[offset_idx][k]  - pattern_avg[ pattern_sid[offset_idx][k] ]);
+
+            pattern_corrb[ pattern_sid[offset_idx][k] ] +=
+                    pow(pattern_img[offset_idx]     - pattern_ag[ pattern_sid[offset_idx][k] ], 2);
+
+            pattern_corrc[ pattern_sid[offset_idx][k] ] +=
+                    pow(pattern_wgt[offset_idx][k]  - pattern_avg[ pattern_sid[offset_idx][k] ], 2);
+
+        }
+
+    }
+
+    // pick the largest correlation and assign corresponding sigma
+    float out_corr = -FLT_MAX; // ensure that at least one sigma will score max
+    float corr_val;
+    for (int i = 0; i < sig.size(); ++i) {
+        corr_val = (pattern_corrb[i]*pattern_corrc[i]>FLT_MIN)? pattern_corra[i]/sqrt(pattern_corrb[i]*pattern_corrc[i]):0;
+        if (corr_val>out_corr) {
+            out_corr = corr_val;
+            _sig = sig[i];
+        }
+    }
+    return out_corr;
+}
+
+float Tracker::zncc(float _x, float _y, float _z, float _vx, float _vy, float _vz, bool _return_avg, unsigned char * img, int img_w, int img_h, int img_l, float & _sig) {
+    //  ux, uy, uz
+    float nrm = sqrt(pow(_vx,2)+pow(_vy,2)); // if the xy projection is close to zero, there is z component only
+    if (nrm>0.0001) {
+        // (ux, uy, uz) denotes the unit direction of the orthogonal positioned in xy plane
+        int sg = (_vy<0)? -1 : 1;
+        ux =  sg * (_vy/nrm);
+        uy = -sg * (_vx/nrm);
+        uz =  0;
+    }
+    else {
+        ux = 1;
+        uy = 0;
+        uz = 0;
+    }
+
+    // wx, wy, wz
+    if (is2d) {
+        wx = 0;
+        wy = 0;
+        wz = 0;
+    }
+    else {
+        wx =   uy*_vz - uz*_vy;
+        wy = - ux*_vz + uz*_vx;
+        wz =   ux*_vy - uy*_vx;
+    }
+
+    float x,y,z,corra, corrb, corrc, corr_val, ag;
+
+    // offsets have been defined taking into accound dimensionality and scales
+    //(not optimal as it will repeat sampling the same values, beneficial to implement some incremental calculation
+    // say it starts with the smallest sqare and infers the image values and average using the smaller ones)
     // find correlation with corresponding template(s)
     float out_corr = -FLT_MAX; // ensure that at least one sigma will score max
     float out_sig = 1; // gaussian cross section sigma of the optimal solution
     float out_corr_avg = 0; // average (test how it works), if the flag says to output it
 
-    for (int sig_idx = 0; sig_idx < model_vuw.size(); ++sig_idx) {
+    for (int sig_idx = 0; sig_idx < model_vuw.size(); ++sig_idx) { // loop sigs
 
         ag = 0;
 
@@ -1732,16 +2089,6 @@ float Tracker::zncc( float _x,      float _y,       float _z,
             y = _y + model_vuw[sig_idx][offset_idx].v * (-_vy) + model_vuw[sig_idx][offset_idx].u * uy + model_vuw[sig_idx][offset_idx].w * wy;
             z = _z + model_vuw[sig_idx][offset_idx].v * (-_vz) + model_vuw[sig_idx][offset_idx].u * uz + model_vuw[sig_idx][offset_idx].w * wz;
 
-//            x += _x;
-//            y += _y;
-//            z += _z;
-
-//            x1 = floor(x); // TODO expell
-//            x2 = ceil(x);
-//            y1 = floor(y);
-//            y2 = ceil(y);
-//            z1 = floor(z);
-//            z2 = ceil(z);
             model_img[sig_idx][offset_idx] = interp(x,y,z, img, img_w, img_h, img_l); // ((x1<0 || x2>=img_w || y1<0 || y2>=img_h || z1<0 || z2>=img_l)?0:interp(x,y,z, img, img_w, img_h, img_l));
             ag += model_img[sig_idx][offset_idx];
 
@@ -1934,20 +2281,20 @@ double Tracker::bessi1( double x){
    return x < 0.0 ? -ans : ans;
 }
 
-void Tracker::add1x1(float _x, float _y, float _z, unsigned char* _trc_den, int _w, int _h, int _l) {
+//void Tracker::add1x1(float _x, float _y, float _z, unsigned char* _trc_den, int _w, int _h, int _l) {
 
-    int x = round(_x);
+//    int x = round(_x);
 
-    if (x>=0 && x<_w) {
-        int y = round(_y);
-        if (y>=0 && y<_h) {
-            int z = round(_z);
-            if (z>=0 && z<_l) {
-                _trc_den[z*_w*_h+y*_w+x] = (unsigned char)((int)_trc_den[z*_w*_h+y*_w+x] + 1);
-            }
-        }
-    }
-}
+//    if (x>=0 && x<_w) {
+//        int y = round(_y);
+//        if (y>=0 && y<_h) {
+//            int z = round(_z);
+//            if (z>=0 && z<_l) {
+//                _trc_den[z*_w*_h+y*_w+x] = (unsigned char)((int)_trc_den[z*_w*_h+y*_w+x] + 1);
+//            }
+//        }
+//    }
+//}
 
 void Tracker::check1x1(float _x, float _y, float _z, bool* _smap, int _w, int _h, int _l) {
 
