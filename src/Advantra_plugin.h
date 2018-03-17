@@ -1,6 +1,5 @@
-/* Advantra_plugin.h
- * Tool for automatic neuron reconstruction from microscopy image stacks.
- * 2015-8-19 : by Miroslav Radojevic
+/* 
+ * Advantra_plugin.h
  */
  
 #ifndef __ADVANTRA_PLUGIN_H__
