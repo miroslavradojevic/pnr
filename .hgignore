@@ -12,3 +12,4 @@ syntax: regexp
 ^\.idea/
 ^idea$
 ^build
+^\.vscode
