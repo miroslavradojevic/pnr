@@ -109,7 +109,6 @@ Node::~Node(){}
 
 void Node::print(){
     printf("[x,y,z]=(%6.2f,%6.2f,%6.2f)\t[vx,vy,vz]=(%6.2f,%6.2f,%6.2f)\tsig=%4.2f\tcorr=%3.2f\ttype=%2d\t", x, y, z, vx, vy, vz,sig,corr,type);
-//    std::cout<<"[x,y,z]=("<<x<<","<<y<<","<<z<<")\t[vx,vy,vz]=("<<vx<<","<<vy<<","<<vz<<")\tsig="<<sig<<"\tcorr="<<corr<<"\ttype="<<type<<std::flush;
     std::cout<<"nbr=["<<std::flush;
     for (int i = 0; i < nbr.size(); ++i) {
         std::cout<<nbr[i]<<((i<nbr.size()-1)?",":"")<<std::flush;

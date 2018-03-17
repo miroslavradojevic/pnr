@@ -1,3 +1,9 @@
+/*
+ * c++ implementation of Frangi vesselness with local vessleness direction for given unsigned char 2d/3d image. 
+ * Provides with the vesselness image and the eigenvectors. 
+ * [paper] http://link.springer.com/chapter/10.1007/BFb0056195
+ * [inspiration] https://nl.mathworks.com/matlabcentral/fileexchange/24409-hessian-based-frangi-vesselness-filter
+ */
 #include "frangi.h"
 #include <string>
 #include <cmath>
