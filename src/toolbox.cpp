@@ -247,7 +247,7 @@ void conn3d(unsigned char * inimg, int width, int height, int depth, int * labim
 //    cout << "conn3d()..." << endl;
 
     // this code is ported from fiji's find connected regions class
-    // adopted to work on unit8 image stacks provided in form of 1d array
+    // adopted to work on unit8 image stacks provided in form of unsigned char* array
     // https://github.com/fiji/VIB/blob/master/src/main/java/util/Find_Connected_Regions.java
     // connected components of regins with same values in 3d using region growing
 
@@ -334,9 +334,13 @@ void conn3d(unsigned char * inimg, int width, int height, int depth, int * labim
         queue[pointsInQueue++] = index;
 
         int pointsInThisRegion = 0;
-        float xmean=0, xmin=FLT_MAX, xmax=-FLT_MAX; // estimation of region centroid and radius rx = (xmax-xmin)/2
-        float ymean=0, ymin=FLT_MAX, ymax=-FLT_MAX; // min and max will serve to roughly estimate radius
+        float xmean=0;//, xmin=FLT_MAX, xmax=-FLT_MAX; // estimation of region centroid and radius rx = (xmax-xmin)/2
+        float ymean=0;//, ymin=FLT_MAX, ymax=-FLT_MAX; // min and max will serve to roughly estimate radius
         float zmean=0;
+        // store the coordinates of the current cluster into vector
+        vector<int> xvals;
+        vector<int> yvals;
+        vector<int> zvals;
 
         //cout << "QUEUE:" << flush; for (int var = 0; var < pointsInQueue; ++var) cout << queue[var] << " | "; cout << endl;
 
@@ -361,11 +365,15 @@ void conn3d(unsigned char * inimg, int width, int height, int depth, int * labim
             ymean = t1 * ymean + t2 * py;
             zmean = t1 * zmean + t2 * pz;
 
-            xmin = (px<xmin)?px:xmin;
-            xmax = (px>xmax)?px:xmax;
+            xvals.push_back(px);
+            yvals.push_back(py);
+            zvals.push_back(pz);
 
-            ymin = (py<ymin)?py:ymin;
-            ymax = (py>ymax)?py:ymax;
+//            xmin = (px<xmin)?px:xmin;
+//            xmax = (px>xmax)?px:xmax;
+
+//            ymin = (py<ymin)?py:ymin;
+//            ymax = (py>ymax)?py:ymax;
 
             int x_unchecked_min = px - 1;
             int y_unchecked_min = py - 1;
@@ -451,12 +459,19 @@ void conn3d(unsigned char * inimg, int width, int height, int depth, int * labim
 //        regtoadd[2] = zmean;
 //        regtoadd[3] = ; // average of rx and ry
 
-        float rmean = min((xmax-xmin)/2.0, (ymax-ymin)/2.0);
+//        float rmean = min((xmax-xmin)/2.0, (ymax-ymin)/2.0);
         //( (xmax-xmin)/2.0 + (ymax-ymin)/2.0 )/2.0;
-
 //        cout << "add R " << regionNumber << " : " << pointsInThisRegion << " voxels, vint=" << vint << "\t" << flush;
-        cout << xmean << " " << ymean << " " << zmean << " " << rmean << endl;
+        // average euclidean distance of the xvals, yvals, zvals towards the center
 
+        float rmean = 0;
+        for (int p = 1; p <= xvals.size(); ++p) {
+            float t1 = (float)(p-1)/p;
+            float t2 = 1.0/p;
+            rmean = t1 * rmean + t2 * sqrt(pow(xvals[p-1]-xmean,2)+pow(yvals[p-1]-ymean,2)+pow(zvals[p-1]-zmean,2));
+        }
+
+//        cout << xmean << " " << ymean << " " << zmean << " " << rmean << endl;
 
 //        reglist.push_back(regtoadd);
         xc.push_back(xmean);
@@ -488,7 +503,6 @@ void conn3d(unsigned char * inimg, int width, int height, int depth, int * labim
     delete sliceDataBytes; sliceDataBytes = 0;
 
 //    cout << "DONE!" << endl;
-
     // return the list of region spheres
 //    return reglist;
 
