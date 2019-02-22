@@ -1,0 +1,8 @@
+<component name="ArtifactManager">
+  <artifact build-on-make="true" name="pnr_copy">
+    <output-path>$USER_HOME$/ImageJ/plugins/my_plugins</output-path>
+    <root id="root">
+      <element id="file-copy" path="$PROJECT_DIR$/pnr_.jar" />
+    </root>
+  </artifact>
+</component>
