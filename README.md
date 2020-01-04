@@ -7,7 +7,7 @@
 ### Synthetic images ###
 
 Download:
-https://1drv.ms/f/s!AsYocJ5K94iIip5HQzPwSF6niv-ygg
+https://miroslavradojevic.stackstorage.com/s/hHqBLPCtCW69JDj
 
 ### Usage ###
 Example Advantra command:
