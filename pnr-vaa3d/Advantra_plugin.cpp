@@ -362,8 +362,8 @@ bool ischecked(seed _s, bool* _smap, int _w, int _h, int _l) {
 }
 */
 
-int get_undiscovered2(int dist[], int dist_length){
-    for (int i = 1; i < dist_length; i++) {
+int get_undiscovered2(vector<int> dist){
+    for (int i = 1; i < dist.size(); i++) {
         if (dist[i]==INT_MAX) {
            return i;
         }
@@ -399,9 +399,9 @@ void bfs2(vector<Node> nlist, vector<Node>& tree, bool remove_isolated_tree_with
 
     BfsQueue<int> q;
 
-    int dist[nlist.size()]; //  fix VLAs
-    int nmap[nlist.size()];
-    int parent[nlist.size()];
+    vector<int> dist(nlist.size());
+    vector<int> nmap(nlist.size());
+    vector<int> parent(nlist.size());
 
     for (int i = 0; i < nlist.size(); ++i) {
         dist[i] = INT_MAX;
@@ -418,7 +418,7 @@ void bfs2(vector<Node> nlist, vector<Node>& tree, bool remove_isolated_tree_with
 
     int seed;
 
-    while ((seed = get_undiscovered2(dist, nlist.size()))>0) {
+    while ((seed = get_undiscovered2(dist))>0) {
 
         treecnt++;
 
