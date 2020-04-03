@@ -399,7 +399,7 @@ void bfs2(vector<Node> nlist, vector<Node>& tree, bool remove_isolated_tree_with
 
     BfsQueue<int> q;
 
-    int dist[nlist.size()];
+    int dist[nlist.size()]; //  fix VLAs
     int nmap[nlist.size()];
     int parent[nlist.size()];
 
