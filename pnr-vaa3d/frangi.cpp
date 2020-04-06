@@ -30,9 +30,7 @@ T clamp(T x, T x1, T x2) {
     return (xC>x2)?x2:xC;
 }
 double round(double r);
-//{
-//    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
-//}
+
 
 Frangi::Frangi(vector<float> _sigs, float _zdist, float _alpha, float _beta, float _C, float _beta_one, float _beta_two) {
 

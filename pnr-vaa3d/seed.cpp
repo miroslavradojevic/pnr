@@ -24,9 +24,7 @@ public:
     bool operator() (const int& a, const int& b) const { return (*_s)[a].score > (*_s)[b].score; }
 };
 double round(double r);
-//{
-//    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
-//}
+
 
 //float SeedExtractor::Luw = 1.5; // radial neighbourghood size when looking for local maxima
 //float SeedExtractor::Lv  = 0.5; // axial neighbourhood size when looking for local maxima

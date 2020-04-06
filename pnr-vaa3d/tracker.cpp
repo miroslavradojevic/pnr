@@ -24,9 +24,6 @@ THE COPYRIGHT HOLDER SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT L
 #endif
 #define MIN(a, b) ((a)<(b)?(a):(b))
 double round(double r);
-//{
-//    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
-//}
 int     Tracker::ndirs2d   = 30;
 int     Tracker::ndirs3d   = 50;
 
