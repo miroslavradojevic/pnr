@@ -34,7 +34,7 @@ example terminal call:
 #include <climits>
 #include <iomanip>
 #include <ctime>
-
+#include <math.h>
 
 #include "Advantra_plugin.h"
 Q_EXPORT_PLUGIN2(Advantra, Advantra);
@@ -42,6 +42,12 @@ Q_EXPORT_PLUGIN2(Advantra, Advantra);
 using namespace std;
 
 static V3DLONG channel = 1;      // default channel (hardcoded)
+
+
+//double round(double r)
+//{
+//    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
+//}
 
 // input parameter default values
 string  neuritesigmas = "2,3";    // list of gaussian cross-section sigmas used for filtering and tracking the neurites
@@ -57,7 +63,7 @@ int     nodepervol  = 4;        // nodes per volume limit, used for the trace su
 int     vol         = 9;        // volume patterns: 1, 5, 9, 11, 19, 27 (larger it gets, suppression is )
 
 int     nrInputParams = 11;     // as in input_PARA struct
-bool    saveMidres = false;      // save midresults
+bool    saveMidres = true;      // save midresults
 
 float    Kc          = 20.0;    // likelihood factor
 float    neff_ratio  = 0.8;     // resampling boundary (ratio of total # pcles)
@@ -77,7 +83,7 @@ float   SIG2RADIUS          = 1.5;      // (used for the neighbourhood estimates
 float   TRACE_RSMPL         = 1.0;      // component trace resampling step
 float   GROUP_RADIUS        = 2;      // node grouping radius, defines the sampling density
 
-bool    ENFORCE_SINGLE_TREE = false;    // single largest tree as output
+bool    ENFORCE_SINGLE_TREE = true;    // single largest tree as output
 int     TREE_SIZE_MIN       = 10;       // trees with less than TREE_SIZE_MIN nodes are discarded (used if ENFORCE_SINGLE_TREE=false)
 int     TAIL_SIZE_MIN       = 2;        // tails (junction--endpoint) with less than TAIL_SIZE_MIN are discarded
 
@@ -116,6 +122,10 @@ public:
     int size(){return kk.size();}
     bool hasItems(){return !kk.empty();}
 };
+double round(double r)
+{
+    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
+}
 
 int clampi(int x, int x1, int x2) {
     int xC = (x<x1)?x1:x;
@@ -859,8 +869,13 @@ void refine_blurring(vector<Node> nX, vector<Node>& nY, float SIG2RAD, int MAXIT
     // TODO blurring should work for all node types!! including soma
     int checkpoint = round(nX.size()/10.0);
 
-    float conv[nX.size()][4]; // fix allocation as it can happen that size exceeds int range
-    float next[nX.size()][4];
+    vector <vector<float> >  conv(nX.size(),vector<float>(4)); // fix allocation as it can happen that size exceeds int range
+    vector <vector<float> >  next(nX.size(),vector<float>(4));
+//vector<vector<float> > ray_x(ray_numbers_2d,vector<float>(100));
+
+
+//    float conv[nX.size()][4]; // fix allocation as it can happen that size exceeds int range
+//    float next[nX.size()][4];
 
     for (long i = 1; i < nX.size(); ++i) {
         conv[i][0] = nX[i].x;
@@ -1463,7 +1478,8 @@ void filter_node_density(vector<Node> nX, float wMin, vector<Node>& nY) {
 
     }
 
-    int XtoY[nX.size()]; // map
+//    int XtoY[nX.size()]; // map
+    vector<int> XtoY(nX.size());
     XtoY[0] = 0;
     nY.clear();
     Node nYroot;
@@ -2141,19 +2157,6 @@ void reconstruct(vector<Node> n0, QString prefix, QString suffix) {
         interpolate_treelist(n3tree, 1.0, Node::AXON);
 
         save_nodelist(n3tree, prefix + "_Advantra1"+suffix+".swc", -1, 1, NAME, COMMENT);
-
-    }
-    if (!ENFORCE_SINGLE_TREE) { // true ||
-
-        vector<Node> n3tree = extract_trees(n2tree, TREE_SIZE_MIN);
-
-//        if (saveMidres) {
-//            save_nodelist(n3tree,                prefix+"_n3tree_"+suffix+".swc");
-//        }
-
-        interpolate_treelist(n3tree, 1.0, Node::AXON);
-
-        save_nodelist(n3tree, prefix + "_Advantra"+suffix+".swc", -1, 1, NAME, COMMENT);
 
     }
 
