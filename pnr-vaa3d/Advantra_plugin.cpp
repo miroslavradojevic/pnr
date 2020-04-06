@@ -2162,6 +2162,7 @@ void reconstruct(vector<Node> n0, QString prefix, QString suffix) {
                 interpolate_treelist(n3tree, 1.0, Node::AXON);
 
                 save_nodelist(n3tree, prefix + "_Advantra"+suffix+".swc", -1, 1, NAME, COMMENT);
+                }
     }
 
 
