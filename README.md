@@ -2,6 +2,8 @@
 
 https://doi.org/10.1007/s12021-018-9407-8
 
+Repository consists of c++/vaa3d source code of the software implementation accompanying the publication.
+
 ### Summary ###
 * Advantra source code (Advantra plugin of the [BigNeuron](https://bitbucket.org/tutorials/markdowndemo) submission)
 * Probabilistic Neuron Reconstructor (PNR) a complete rework of the Advantra
