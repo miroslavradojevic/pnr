@@ -8,7 +8,6 @@ https://doi.org/10.1007/s12021-018-9407-8
 
 ### Synthetic images ###
 
-Download:
 https://miroslavradojevic.stackstorage.com/s/hHqBLPCtCW69JDj
 
 ### Usage ###
