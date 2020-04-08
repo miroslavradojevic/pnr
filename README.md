@@ -18,5 +18,5 @@ Example Advantra command:
 vaa3d64 -x Advantra -f advantra_func -i image.tif -p 2,4,6 0 5 0.3 3 2 200 20 2 4 1
 ```
 ### Contact ###
-* Miroslav Radojevic
-* miroslav.radojevic@gmail.com
+Miroslav Radojevic
+miroslav.radojevic@gmail.com
