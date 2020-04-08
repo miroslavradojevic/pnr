@@ -1,6 +1,8 @@
 # Automated Neuron Reconstruction from 3D Fluorescence Microscopy Images Using Sequential Monte Carlo Estimation #
-### Summary ###
 
+https://doi.org/10.1007/s12021-018-9407-8
+
+### Summary ###
 * Advantra source code (Advantra plugin of the [BigNeuron](https://bitbucket.org/tutorials/markdowndemo) submission)
 * Probabilistic Neuron Reconstructor (PNR) a complete rework of the Advantra
 
