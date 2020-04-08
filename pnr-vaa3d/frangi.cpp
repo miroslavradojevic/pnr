@@ -29,6 +29,8 @@ T clamp(T x, T x1, T x2) {
     T xC = (x<x1)?x1:x;
     return (xC>x2)?x2:xC;
 }
+double round(double r);
+
 
 Frangi::Frangi(vector<float> _sigs, float _zdist, float _alpha, float _beta, float _C, float _beta_one, float _beta_two) {
 
@@ -73,7 +75,7 @@ void Frangi::generate_3d_unit_directions(unsigned char Ndir, vector< vector<floa
             phi_k_1 = 0;
         }
         else{
-            phi_k = phi_k_1 + 3.6 / ( sqrt(Ndir) * sqrt(1-h_k*h_k));
+            phi_k = phi_k_1 + 3.6 / ( sqrt((double)Ndir) * sqrt(1-h_k*h_k));
             phi_k_1 = phi_k;
         }
 
@@ -226,7 +228,7 @@ void Frangi::frangi3d(unsigned char* I, int w, int h, int l, float* J, float& Jm
             }
 
             // remove NaN
-            Voxel_data = isnan(Voxel_data)? 0 : Voxel_data ;
+            Voxel_data = _isnan(Voxel_data)? 0 : Voxel_data ;
 
             // add result of this scale to output
             if (si==0) {
@@ -564,7 +566,8 @@ void Frangi::imgaussian(unsigned char * I, int w, int h, float sig, float* F) {
 
     // gaussian filter is separated into 1D Gaussian kernel Gxy[.] that will be used for filtering along x and y
     int Lxy = ceil(3*sig);
-    float Gxy[2*Lxy+1];
+//    float Gxy[2*Lxy+1];
+    vector<float> Gxy(2*Lxy+1);
     float Gnorm = 0;
     for (int i = -Lxy; i <= Lxy; ++i) {
         Gxy[i+Lxy] = exp(-(i*i)/(2*sig*sig));
@@ -650,7 +653,8 @@ void Frangi::imgaussian(unsigned char * I, int w, int h, int l, float sig, float
     // gaussian filter is separated into 1D Gaussian kernels Gxy[.] and Gz[.] if z coordinate is scaled
     int Lxy = ceil(3*sig);
 
-    float Gxy[2*Lxy+1];
+//    float Gxy[2*Lxy+1];
+    vector<float> Gxy(2*Lxy+1);
 
     float Gnorm = 0;
     for (int i = -Lxy; i <= Lxy; ++i) {
@@ -664,7 +668,8 @@ void Frangi::imgaussian(unsigned char * I, int w, int h, int l, float sig, float
 
     Gnorm = 0;
     int Lz  = ceil(3*sigz);
-    float Gz[2*Lz  +1];
+//    float Gz[2*Lz  +1];
+    vector<float> Gz(2*Lz  +1);
     for (int i = -Lz; i <= Lz; ++i) {
         Gz[i+Lz] = exp(-(i*i)/(2*sigz*sigz));
         Gnorm += Gz[i+Lz];
@@ -786,7 +791,8 @@ void Frangi::imgaussian(unsigned char * I, int w, int h, int l, float sig) {
     // gaussian filter is separated into 1D Gaussian kernels Gy[Gx[.]]
     int Lxy = ceil(3*sig);
 
-    float Gxy[2*Lxy+1];
+//    float Gxy[2*Lxy+1];
+    vector<float> Gxy(2*Lxy+1);
 
     float Gnorm = 0;
     for (int i = -Lxy; i <= Lxy; ++i) {

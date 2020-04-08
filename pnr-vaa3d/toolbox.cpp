@@ -33,7 +33,8 @@ int mode(vector<int> vals) {
 
         // draw a histogram
         int hlen = mx-mn+1;
-        int hist[hlen];
+//        int hist[hlen];
+        vector<int> hist(hlen);
         for (int i = 0; i < hlen; ++i)
             hist[i] = 0;
 
@@ -87,8 +88,10 @@ void selec(vector<int> trctags, vector<int> ndetags, int cntth, int excludetag, 
             // there is range of values, draw a histogram of trace tags within the neighbourhood
             int hlen = mx-mn+1;
 
-            int hist[hlen];
-            int matchnde[hlen];
+//            int hist[hlen];
+            vector<int> hist(hlen);
+//            int matchnde[hlen];
+            vector<int> matchnde(hlen);
 
             for (int i = 0; i < hlen; ++i) {
                 hist[i] = 0;
@@ -505,12 +508,12 @@ void conn3d(unsigned char * inimg, int width, int height, int depth, int * labim
 
 }
 
-bool bimodalTest(float * y, int ylen) {
+bool bimodalTest(vector<float> y) {
 //    int len=y.length;
     bool b = false;
     int modes = 0;
 
-    for (int k=1;k<ylen-1;k++){
+    for (int k=1;k<y.size()-1;k++){
         if (y[k-1] < y[k] && y[k+1] < y[k]) {
             modes++;
             if (modes>2)
@@ -534,7 +537,8 @@ unsigned char intermodes_th(unsigned char * image1, long size) {
 
     int GRAYLEVEL = 256;
 
-    int hist[GRAYLEVEL];
+//    int hist[GRAYLEVEL];
+    vector<int> hist(GRAYLEVEL);
     for (int i = 0; i < GRAYLEVEL; i++) hist[i] = 0;
     for (long i = 0; i < size; ++i) hist[image1[i]]++;
 
@@ -543,7 +547,8 @@ unsigned char intermodes_th(unsigned char * image1, long size) {
     for (int i=GRAYLEVEL-1; i>=0; i--) if (hist[i]>0) minbin = i;
 
     int length = (maxbin-minbin)+1;
-    float hist1[length];
+//    float hist1[length];
+    vector<float> hist1(length);
 
 //    cout << minbin << " -- " << maxbin << " -- " << length << endl;
 
@@ -552,7 +557,7 @@ unsigned char intermodes_th(unsigned char * image1, long size) {
     int iter = 0;
     int threshold=-1;
 
-    while (!bimodalTest(hist1, length) ) {
+    while (!bimodalTest(hist1) ) {
 
         //smooth with a 3 point running mean filter
         float previous=0, current=0, next=hist1[0];
@@ -593,10 +598,19 @@ unsigned char otsu_th(unsigned char * image1, long size) {
     int GRAYLEVEL = 256;
 
     // binarization by Otsu
-    int hist[GRAYLEVEL];
+/*    int hist[GRAYLEVEL];
     float prob[GRAYLEVEL], omega[GRAYLEVEL];   // prob of graylevels
-    float myu[GRAYLEVEL];                      // mean value for separation
-    float max_sigma, sigma[GRAYLEVEL];         // inter-class variance
+    float myu[GRAYLEVEL];    */                  // mean value for separation
+//    float max_sigma, sigma[GRAYLEVEL];         // inter-class variance
+
+    vector<int> hist(GRAYLEVEL);
+    vector<float> prob(GRAYLEVEL);
+    vector<float> omega(GRAYLEVEL);
+    vector<float> myu(GRAYLEVEL);
+    vector<float> sigma(GRAYLEVEL);
+    float max_sigma;
+
+
     int i, x, y;                               // loop variable
     unsigned char threshold;                   // threshold for binarization
 
@@ -645,7 +659,8 @@ unsigned char maxentropy_th(unsigned char * image1, long size) {
     // binarization by MaxEntropy
     int GRAYLEVEL = 256;
 
-    int hist[GRAYLEVEL];
+//    int hist[GRAYLEVEL];
+    vector<int> hist(GRAYLEVEL);
     for (int i = 0; i < GRAYLEVEL; i++) hist[i] = 0;
     for (long i = 0; i < size; ++i) {
         hist[image1[i]]++;
@@ -657,12 +672,14 @@ unsigned char maxentropy_th(unsigned char * image1, long size) {
         sum += hist[i];
     }
 
-    float normalizedHist[GRAYLEVEL];
+//    float normalizedHist[GRAYLEVEL];
+    vector<float> normalizedHist(GRAYLEVEL);
     for (int i = 0; i < GRAYLEVEL; i++) {
         normalizedHist[i] = hist[i] / sum;
     }
 
-    float pT[GRAYLEVEL];
+//    float pT[GRAYLEVEL];
+    vector<float> pT(GRAYLEVEL);
     pT[0] = normalizedHist[0];
     for (int i = 1; i < GRAYLEVEL; i++) {
         pT[i] = pT[i - 1] + normalizedHist[i];
@@ -670,8 +687,10 @@ unsigned char maxentropy_th(unsigned char * image1, long size) {
 
     // Entropy for black and white parts of the histogram
     float epsilon = FLT_MIN;//Double.MIN_VALUE;
-    float hB[GRAYLEVEL];// = new double[hist.length];
-    float hW[GRAYLEVEL];// = new double[hist.length];
+//    float hB[GRAYLEVEL];// = new double[hist.length];
+//    float hW[GRAYLEVEL];// = new double[hist.length];
+    vector<float> hB(GRAYLEVEL);
+    vector<float> hW(GRAYLEVEL);
 
     for (int t = 0; t < GRAYLEVEL; t++) {
         // Black entropy

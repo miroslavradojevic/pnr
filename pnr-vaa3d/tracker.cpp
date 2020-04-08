@@ -23,7 +23,7 @@ THE COPYRIGHT HOLDER SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT L
 #undef MIN
 #endif
 #define MIN(a, b) ((a)<(b)?(a):(b))
-
+double round(double r);
 int     Tracker::ndirs2d   = 30;
 int     Tracker::ndirs3d   = 50;
 
@@ -415,7 +415,7 @@ Tracker::Tracker(   vector<float> _sigs,
         p[i][2] = pz[i]/zDist; // predictions are scaled down with zdist
 
         d[i] = sqrt(p[i][0]*p[i][0] + p[i][1]*p[i][1] + p[i][2]*p[i][2]);
-        d0[i] = sqrt(px[i]*px[i] + py[i]*py[i] + pz[i]*pz[i]);
+        d0[i] = sqrt((float)px[i]*px[i] + py[i]*py[i] + pz[i]*pz[i]);
 
         u[i] = new float[3];
         u[i][0] = p[i][0]/d[i];
@@ -790,7 +790,7 @@ void Tracker::generate_directions(bool is2D, float** vxyz){
                 phi_k_1 = 0;
             }
             else {
-                phi_k = phi_k_1 + 3.6 / ( sqrt(nrdirs) * sqrt(1 - h_k * h_k));
+                phi_k = phi_k_1 + 3.6 / ( sqrt((float)nrdirs) * sqrt(1 - h_k * h_k));
                 phi_k_1 = phi_k;
             }
 
@@ -1016,9 +1016,9 @@ bool Tracker::iter0New(unsigned char * _img, int _w, int _h, int _l) { // , vect
         xfilt[0][i].y = x0.y + p[s][1];
         xfilt[0][i].z = x0.z + p[s][2];
 
-        xfilt[0][i].vx = isnan(x0.vx)?u[s][0]:x0.vx; // nan directions let the trace find the linear structure and align with it
-        xfilt[0][i].vy = isnan(x0.vy)?u[s][1]:x0.vy;
-        xfilt[0][i].vz = isnan(x0.vz)?u[s][2]:x0.vz;
+        xfilt[0][i].vx = _isnan(x0.vx)?u[s][0]:x0.vx; // nan directions let the trace find the linear structure and align with it
+        xfilt[0][i].vy = _isnan(x0.vy)?u[s][1]:x0.vy;
+        xfilt[0][i].vz = _isnan(x0.vz)?u[s][2]:x0.vz;
 
         // prior
         prior[i] = w0[s];

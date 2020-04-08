@@ -35,13 +35,14 @@ example terminal call:
 #include <iomanip>
 #include <ctime>
 
-
 #include "Advantra_plugin.h"
 Q_EXPORT_PLUGIN2(Advantra, Advantra);
 
 using namespace std;
 
 static V3DLONG channel = 1;      // default channel (hardcoded)
+
+
 
 // input parameter default values
 string  neuritesigmas = "2,3";    // list of gaussian cross-section sigmas used for filtering and tracking the neurites
@@ -116,6 +117,10 @@ public:
     int size(){return kk.size();}
     bool hasItems(){return !kk.empty();}
 };
+double round(double r)
+{
+    return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
+}
 
 int clampi(int x, int x1, int x2) {
     int xC = (x<x1)?x1:x;
@@ -362,8 +367,8 @@ bool ischecked(seed _s, bool* _smap, int _w, int _h, int _l) {
 }
 */
 
-int get_undiscovered2(int dist[], int dist_length){
-    for (int i = 1; i < dist_length; i++) {
+int get_undiscovered2(vector<int> dist){
+    for (int i = 1; i < dist.size(); i++) {
         if (dist[i]==INT_MAX) {
            return i;
         }
@@ -399,9 +404,9 @@ void bfs2(vector<Node> nlist, vector<Node>& tree, bool remove_isolated_tree_with
 
     BfsQueue<int> q;
 
-    int dist[nlist.size()];
-    int nmap[nlist.size()];
-    int parent[nlist.size()];
+    vector<int> dist(nlist.size());
+    vector<int> nmap(nlist.size());
+    vector<int> parent(nlist.size());
 
     for (int i = 0; i < nlist.size(); ++i) {
         dist[i] = INT_MAX;
@@ -418,7 +423,7 @@ void bfs2(vector<Node> nlist, vector<Node>& tree, bool remove_isolated_tree_with
 
     int seed;
 
-    while ((seed = get_undiscovered2(dist, nlist.size()))>0) {
+    while ((seed = get_undiscovered2(dist))>0) {
 
         treecnt++;
 
@@ -859,8 +864,11 @@ void refine_blurring(vector<Node> nX, vector<Node>& nY, float SIG2RAD, int MAXIT
     // TODO blurring should work for all node types!! including soma
     int checkpoint = round(nX.size()/10.0);
 
-    float conv[nX.size()][4]; // fix allocation as it can happen that size exceeds int range
-    float next[nX.size()][4];
+//    float conv[nX.size()][4]; // fix allocation as it can happen that size exceeds int range
+//    float next[nX.size()][4];
+    vector <vector<float> >  conv(nX.size(),vector<float>(4)); // fix allocation as it can happen that size exceeds int range
+    vector <vector<float> >  next(nX.size(),vector<float>(4));
+
 
     for (long i = 1; i < nX.size(); ++i) {
         conv[i][0] = nX[i].x;
@@ -1463,7 +1471,8 @@ void filter_node_density(vector<Node> nX, float wMin, vector<Node>& nY) {
 
     }
 
-    int XtoY[nX.size()]; // map
+//    int XtoY[nX.size()]; // map
+    vector<int> XtoY(nX.size());
     XtoY[0] = 0;
     nY.clear();
     Node nYroot;
@@ -2142,20 +2151,20 @@ void reconstruct(vector<Node> n0, QString prefix, QString suffix) {
 
         save_nodelist(n3tree, prefix + "_Advantra1"+suffix+".swc", -1, 1, NAME, COMMENT);
 
+        if (!ENFORCE_SINGLE_TREE) { // true ||
+
+                vector<Node> n3tree = extract_trees(n2tree, TREE_SIZE_MIN);
+
+        //        if (saveMidres) {
+        //            save_nodelist(n3tree,                prefix+"_n3tree_"+suffix+".swc");
+        //        }
+
+                interpolate_treelist(n3tree, 1.0, Node::AXON);
+
+                save_nodelist(n3tree, prefix + "_Advantra"+suffix+".swc", -1, 1, NAME, COMMENT);
+                }
     }
-    if (!ENFORCE_SINGLE_TREE) { // true ||
 
-        vector<Node> n3tree = extract_trees(n2tree, TREE_SIZE_MIN);
-
-//        if (saveMidres) {
-//            save_nodelist(n3tree,                prefix+"_n3tree_"+suffix+".swc");
-//        }
-
-        interpolate_treelist(n3tree, 1.0, Node::AXON);
-
-        save_nodelist(n3tree, prefix + "_Advantra"+suffix+".swc", -1, 1, NAME, COMMENT);
-
-    }
 
     n2tree.clear();
 
