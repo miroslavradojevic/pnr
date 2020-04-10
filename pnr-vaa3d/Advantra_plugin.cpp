@@ -117,10 +117,12 @@ public:
     int size(){return kk.size();}
     bool hasItems(){return !kk.empty();}
 };
+#ifdef  _WIN32
 double round(double r)
 {
     return (r > 0.0) ? floor(r + 0.5) : ceil(r - 0.5);
 }
+#endif
 
 int clampi(int x, int x1, int x2) {
     int xC = (x<x1)?x1:x;
@@ -2151,20 +2153,20 @@ void reconstruct(vector<Node> n0, QString prefix, QString suffix) {
 
         save_nodelist(n3tree, prefix + "_Advantra1"+suffix+".swc", -1, 1, NAME, COMMENT);
 
-        if (!ENFORCE_SINGLE_TREE) { // true ||
 
-                vector<Node> n3tree = extract_trees(n2tree, TREE_SIZE_MIN);
-
-        //        if (saveMidres) {
-        //            save_nodelist(n3tree,                prefix+"_n3tree_"+suffix+".swc");
-        //        }
-
-                interpolate_treelist(n3tree, 1.0, Node::AXON);
-
-                save_nodelist(n3tree, prefix + "_Advantra"+suffix+".swc", -1, 1, NAME, COMMENT);
-                }
     }
+    if (!ENFORCE_SINGLE_TREE) { // true ||
 
+            vector<Node> n3tree = extract_trees(n2tree, TREE_SIZE_MIN);
+
+    //        if (saveMidres) {
+    //            save_nodelist(n3tree,                prefix+"_n3tree_"+suffix+".swc");
+    //        }
+
+            interpolate_treelist(n3tree, 1.0, Node::AXON);
+
+            save_nodelist(n3tree, prefix + "_Advantra"+suffix+".swc", -1, 1, NAME, COMMENT);
+            }
 
     n2tree.clear();
 

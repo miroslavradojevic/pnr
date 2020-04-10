@@ -29,8 +29,9 @@ T clamp(T x, T x1, T x2) {
     T xC = (x<x1)?x1:x;
     return (xC>x2)?x2:xC;
 }
+#ifdef  _WIN32
 double round(double r);
-
+#endif
 
 Frangi::Frangi(vector<float> _sigs, float _zdist, float _alpha, float _beta, float _C, float _beta_one, float _beta_two) {
 
@@ -228,7 +229,11 @@ void Frangi::frangi3d(unsigned char* I, int w, int h, int l, float* J, float& Jm
             }
 
             // remove NaN
+            #ifdef  _WIN32
             Voxel_data = _isnan(Voxel_data)? 0 : Voxel_data ;
+            #elif
+            Voxel_data = isnan(Voxel_data)? 0 : Voxel_data ;
+            #endif
 
             // add result of this scale to output
             if (si==0) {

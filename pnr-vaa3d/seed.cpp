@@ -23,8 +23,9 @@ public:
     CompareSeedScore(vector<seed>* v) : _s(v) {}
     bool operator() (const int& a, const int& b) const { return (*_s)[a].score > (*_s)[b].score; }
 };
+#ifdef  _WIN32
 double round(double r);
-
+#endif
 
 //float SeedExtractor::Luw = 1.5; // radial neighbourghood size when looking for local maxima
 //float SeedExtractor::Lv  = 0.5; // axial neighbourhood size when looking for local maxima

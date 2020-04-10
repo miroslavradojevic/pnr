@@ -23,7 +23,9 @@ THE COPYRIGHT HOLDER SPECIFICALLY DISCLAIMS ANY WARRANTIES, INCLUDING, BUT NOT L
 #undef MIN
 #endif
 #define MIN(a, b) ((a)<(b)?(a):(b))
+#ifdef  _WIN32
 double round(double r);
+#endif
 int     Tracker::ndirs2d   = 30;
 int     Tracker::ndirs3d   = 50;
 
@@ -1015,10 +1017,17 @@ bool Tracker::iter0New(unsigned char * _img, int _w, int _h, int _l) { // , vect
         xfilt[0][i].x = x0.x + p[s][0];
         xfilt[0][i].y = x0.y + p[s][1];
         xfilt[0][i].z = x0.z + p[s][2];
-
+        #ifdef  _WIN32
         xfilt[0][i].vx = _isnan(x0.vx)?u[s][0]:x0.vx; // nan directions let the trace find the linear structure and align with it
         xfilt[0][i].vy = _isnan(x0.vy)?u[s][1]:x0.vy;
         xfilt[0][i].vz = _isnan(x0.vz)?u[s][2]:x0.vz;
+        #elif
+        xfilt[0][i].vx = isnan(x0.vx)?u[s][0]:x0.vx; // nan directions let the trace find the linear structure and align with it
+        xfilt[0][i].vy = isnan(x0.vy)?u[s][1]:x0.vy;
+        xfilt[0][i].vz = isnan(x0.vz)?u[s][2]:x0.vz;
+        #endif
+
+
 
         // prior
         prior[i] = w0[s];
