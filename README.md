@@ -10,7 +10,7 @@ Repository consists of c++/vaa3d source code of the software implementation acco
 
 ### Synthetic images ###
 
-https://miroslavradojevic.stackstorage.com/s/hHqBLPCtCW69JDj
+https://drive.proton.me/urls/ZK2R10K8F8#mmNBTgS7y9dl
 
 ### Usage ###
 Example Advantra command:
